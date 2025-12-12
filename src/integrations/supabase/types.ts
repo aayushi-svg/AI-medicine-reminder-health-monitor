@@ -14,7 +14,215 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      caretaker_shares: {
+        Row: {
+          caretaker_email: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          patient_user_id: string
+          share_token: string
+        }
+        Insert: {
+          caretaker_email: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          patient_user_id: string
+          share_token?: string
+        }
+        Update: {
+          caretaker_email?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          patient_user_id?: string
+          share_token?: string
+        }
+        Relationships: []
+      }
+      dose_logs: {
+        Row: {
+          created_at: string
+          id: string
+          medicine_id: string
+          response_time_seconds: number | null
+          scheduled_time: string
+          status: string
+          taken_time: string | null
+          time_slot: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          medicine_id: string
+          response_time_seconds?: number | null
+          scheduled_time: string
+          status?: string
+          taken_time?: string | null
+          time_slot: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          medicine_id?: string
+          response_time_seconds?: number | null
+          scheduled_time?: string
+          status?: string
+          taken_time?: string | null
+          time_slot?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dose_logs_medicine_id_fkey"
+            columns: ["medicine_id"]
+            isOneToOne: false
+            referencedRelation: "medicines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicines: {
+        Row: {
+          afternoon: boolean | null
+          afternoon_time: string | null
+          before_food: boolean | null
+          color: string | null
+          created_at: string
+          days_remaining: number | null
+          dosage: string
+          end_date: string | null
+          id: string
+          morning: boolean | null
+          morning_time: string | null
+          name: string
+          night: boolean | null
+          night_time: string | null
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          afternoon?: boolean | null
+          afternoon_time?: string | null
+          before_food?: boolean | null
+          color?: string | null
+          created_at?: string
+          days_remaining?: number | null
+          dosage: string
+          end_date?: string | null
+          id?: string
+          morning?: boolean | null
+          morning_time?: string | null
+          name: string
+          night?: boolean | null
+          night_time?: string | null
+          start_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          afternoon?: boolean | null
+          afternoon_time?: string | null
+          before_food?: boolean | null
+          color?: string | null
+          created_at?: string
+          days_remaining?: number | null
+          dosage?: string
+          end_date?: string | null
+          id?: string
+          morning?: boolean | null
+          morning_time?: string | null
+          name?: string
+          night?: boolean | null
+          night_time?: string | null
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          activity_pattern: Json | null
+          adherence_score: number | null
+          age: number | null
+          caretaker_email: string | null
+          created_at: string
+          email: string | null
+          gender: string | null
+          id: string
+          medical_conditions: string | null
+          name: string | null
+          sleep_pattern: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_pattern?: Json | null
+          adherence_score?: number | null
+          age?: number | null
+          caretaker_email?: string | null
+          created_at?: string
+          email?: string | null
+          gender?: string | null
+          id?: string
+          medical_conditions?: string | null
+          name?: string | null
+          sleep_pattern?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_pattern?: Json | null
+          adherence_score?: number | null
+          age?: number | null
+          caretaker_email?: string | null
+          created_at?: string
+          email?: string | null
+          gender?: string | null
+          id?: string
+          medical_conditions?: string | null
+          name?: string | null
+          sleep_pattern?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vitals: {
+        Row: {
+          activity_level: string | null
+          created_at: string
+          date: string
+          id: string
+          sleep_hours: number | null
+          steps: number | null
+          user_id: string
+        }
+        Insert: {
+          activity_level?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          sleep_hours?: number | null
+          steps?: number | null
+          user_id: string
+        }
+        Update: {
+          activity_level?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          sleep_hours?: number | null
+          steps?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
