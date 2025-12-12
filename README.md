@@ -1,73 +1,139 @@
-# Welcome to your Lovable project
+AI Medicine Reminder & Health Monitor App
 
-## Project info
+A smart AI-powered mobile application that helps patients take medicines on time, understand their prescription, track their health vitals, and improve medication adherence.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+🧠 1. Problem Statement
 
-## How can I edit this code?
+Patients frequently forget to take medicines on time, leading to poor treatment results.
+Doctors also have no visibility into whether patients are following their prescribed routine.
 
-There are several ways of editing your application.
+💡 2. Solution
 
-**Use Lovable**
+This app solves the problem by combining:
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+✔ OCR-based prescription reading
+✔ Smart medicine reminders
+✔ Health vitals tracking using mobile sensors
+✔ AI-based adherence prediction
+✔ Simple and friendly UI
 
-Changes made via Lovable will be committed automatically to this repo.
+🚀 3. Key Features
+📸 OCR Prescription Reader
 
-**Use your preferred IDE**
+Upload a photo of a handwritten or printed prescription
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Extract medicine names automatically
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+User can edit and finalize details
 
-Follow these steps:
+⏰ Smart Medicine Reminder System
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Adaptive reminders
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+Tracks “Taken” / “Missed” doses
 
-# Step 3: Install the necessary dependencies.
-npm i
+Sends alerts through Firebase Cloud Messaging
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+📊 Health Monitoring
 
-**Edit a file directly in GitHub**
+Tracks health vitals using:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Phone sensors (steps, activity, calories)
 
-**Use GitHub Codespaces**
+Google Fit / Apple HealthKit (optional)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Smart insights and trends
 
-## What technologies are used for this project?
+🤖 AI Adherence Prediction
 
-This project is built with:
+Learns user behaviour:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Which dose user misses?
 
-## How can I deploy this project?
+At what time?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Why?
 
-## Can I connect a custom domain to my Lovable project?
+Suggests optimal reminder times
 
-Yes, you can!
+Generates a risk score
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+🛠 4. Tech Stack
+Frontend
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Flutter / React Native
+
+Backend
+
+Firebase (Authentication + Firestore + FCM)
+
+Node.js or Python (APIs + ML Model)
+
+Machine Learning
+
+Python
+
+Pandas / Scikit-learn
+
+Adherence Prediction Model
+
+OCR
+
+Google Vision API
+or
+
+Tesseract OCR
+
+Health APIs
+
+Google Fit (Android)
+
+HealthKit (iOS)
+
+📁 5. Project Structure
+/assets               -> Images & sample prescriptions
+/lib or /src          -> App source code
+/ml_model             -> ML model files
+/backend              -> API server + Firebase logic
+/documentation        -> Diagrams + report + architecture
+
+🧩 6. How It Works
+Step 1: User logs in
+Step 2: Uploads prescription
+Step 3: OCR extracts medicine names
+Step 4: User confirms dose & timing
+Step 5: App sends smart reminders
+Step 6: Tracks vitals via sensors
+Step 7: AI predicts adherence pattern
+📈 7. Future Scope
+
+IoT Smart Pill Box integration
+
+Wearable health tracker sync
+
+Doctor dashboard for remote monitoring
+
+AI chatbot for medicine guidance
+
+Emergency alert system
+
+📝 8. Screenshots / UI (Add your screenshots here)
+/assets/ui_design/login_screen.png
+/assets/ui_design/ocr_preview.png
+/assets/ui_design/reminder_screen.png
+/assets/ui_design/health_dashboard.png
+
+👩‍⚕️ 9. Why This App Is Needed (Short Answer for Viva)
+
+Normal alarms can remind,
+but they cannot track, analyse, predict, or adapt.
+
+This app is designed to:
+
+Ensure the patient actually takes medicines
+
+Reduce missed doses
+
+Help chronic patients stay consistent
+
+Provide doctors real data
