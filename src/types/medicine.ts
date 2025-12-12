@@ -3,24 +3,25 @@ export interface Medicine {
   name: string;
   dosage: string;
   morning: boolean;
-  morningTime?: string;
+  morning_time: string;
   afternoon: boolean;
-  afternoonTime?: string;
+  afternoon_time: string;
   night: boolean;
-  nightTime?: string;
-  beforeFood: boolean;
-  daysRemaining: number;
-  startDate: string;
-  color: 'primary' | 'secondary' | 'accent' | 'lavender' | 'sunny' | 'care';
+  night_time: string;
+  before_food: boolean;
+  days_remaining: number;
+  start_date: string;
+  color: 'primary' | 'secondary' | 'accent' | 'lavender' | 'sunny' | 'care' | string;
 }
 
 export interface DoseLog {
   id: string;
-  medicineId: string;
-  scheduledTime: string;
-  takenTime?: string;
+  medicine_id: string;
+  scheduled_time: string;
+  taken_time: string | null;
   status: 'pending' | 'taken' | 'missed' | 'suspected';
-  timeSlot: 'morning' | 'afternoon' | 'night';
+  time_slot: 'morning' | 'afternoon' | 'night';
+  response_time_seconds: number | null;
 }
 
 export interface User {
