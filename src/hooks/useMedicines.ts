@@ -10,12 +10,14 @@ const initialMedicines: Medicine[] = [
     name: 'Vitamin D3',
     dosage: '1000 IU',
     morning: true,
-    morningTime: '08:00',
+    morning_time: '08:00',
     afternoon: false,
+    afternoon_time: '14:00',
     night: false,
-    beforeFood: false,
-    daysRemaining: 25,
-    startDate: '2024-01-01',
+    night_time: '20:00',
+    before_food: false,
+    days_remaining: 25,
+    start_date: '2024-01-01',
     color: 'sunny',
   },
   {
@@ -23,12 +25,14 @@ const initialMedicines: Medicine[] = [
     name: 'Omega-3',
     dosage: '500mg',
     morning: false,
+    morning_time: '08:00',
     afternoon: true,
-    afternoonTime: '13:00',
+    afternoon_time: '13:00',
     night: false,
-    beforeFood: false,
-    daysRemaining: 18,
-    startDate: '2024-01-05',
+    night_time: '20:00',
+    before_food: false,
+    days_remaining: 18,
+    start_date: '2024-01-05',
     color: 'secondary',
   },
   {
@@ -36,12 +40,14 @@ const initialMedicines: Medicine[] = [
     name: 'Multivitamin',
     dosage: '1 tablet',
     morning: true,
-    morningTime: '08:00',
+    morning_time: '08:00',
     afternoon: false,
+    afternoon_time: '14:00',
     night: false,
-    beforeFood: true,
-    daysRemaining: 30,
-    startDate: '2024-01-01',
+    night_time: '20:00',
+    before_food: true,
+    days_remaining: 30,
+    start_date: '2024-01-01',
     color: 'primary',
   },
   {
@@ -49,12 +55,14 @@ const initialMedicines: Medicine[] = [
     name: 'Melatonin',
     dosage: '3mg',
     morning: false,
+    morning_time: '08:00',
     afternoon: false,
+    afternoon_time: '14:00',
     night: true,
-    nightTime: '21:00',
-    beforeFood: false,
-    daysRemaining: 14,
-    startDate: '2024-01-10',
+    night_time: '21:00',
+    before_food: false,
+    days_remaining: 14,
+    start_date: '2024-01-10',
     color: 'lavender',
   },
 ];
@@ -64,31 +72,37 @@ const generateDoseLogs = (medicines: Medicine[]): DoseLog[] => {
   const today = new Date().toISOString().split('T')[0];
   
   medicines.forEach(medicine => {
-    if (medicine.morning && medicine.morningTime) {
+    if (medicine.morning && medicine.morning_time) {
       logs.push({
         id: `${medicine.id}-morning-${today}`,
-        medicineId: medicine.id,
-        scheduledTime: `${today}T${medicine.morningTime}`,
+        medicine_id: medicine.id,
+        scheduled_time: `${today}T${medicine.morning_time}`,
+        taken_time: null,
         status: 'pending',
-        timeSlot: 'morning',
+        time_slot: 'morning',
+        response_time_seconds: null,
       });
     }
-    if (medicine.afternoon && medicine.afternoonTime) {
+    if (medicine.afternoon && medicine.afternoon_time) {
       logs.push({
         id: `${medicine.id}-afternoon-${today}`,
-        medicineId: medicine.id,
-        scheduledTime: `${today}T${medicine.afternoonTime}`,
+        medicine_id: medicine.id,
+        scheduled_time: `${today}T${medicine.afternoon_time}`,
+        taken_time: null,
         status: 'pending',
-        timeSlot: 'afternoon',
+        time_slot: 'afternoon',
+        response_time_seconds: null,
       });
     }
-    if (medicine.night && medicine.nightTime) {
+    if (medicine.night && medicine.night_time) {
       logs.push({
         id: `${medicine.id}-night-${today}`,
-        medicineId: medicine.id,
-        scheduledTime: `${today}T${medicine.nightTime}`,
+        medicine_id: medicine.id,
+        scheduled_time: `${today}T${medicine.night_time}`,
+        taken_time: null,
         status: 'pending',
-        timeSlot: 'night',
+        time_slot: 'night',
+        response_time_seconds: null,
       });
     }
   });
@@ -118,7 +132,7 @@ export const useMedicines = () => {
   const markDose = useCallback((logId: string, status: 'taken' | 'missed' | 'suspected') => {
     setDoseLogs(prev => prev.map(log => 
       log.id === logId 
-        ? { ...log, status, takenTime: status === 'taken' ? new Date().toISOString() : undefined }
+        ? { ...log, status, taken_time: status === 'taken' ? new Date().toISOString() : null }
         : log
     ));
   }, []);
@@ -131,9 +145,9 @@ export const useMedicines = () => {
     ];
 
     doseLogs.forEach(log => {
-      const medicine = medicines.find(m => m.id === log.medicineId);
+      const medicine = medicines.find(m => m.id === log.medicine_id);
       if (medicine) {
-        const slot = schedule.find(s => s.timeSlot === log.timeSlot);
+        const slot = schedule.find(s => s.timeSlot === log.time_slot);
         if (slot) {
           slot.medicines.push({ medicine, log });
         }
@@ -155,7 +169,7 @@ export const useMedicines = () => {
 
   const getTodayStats = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
-    const todayLogs = doseLogs.filter(log => log.scheduledTime.startsWith(today));
+    const todayLogs = doseLogs.filter(log => log.scheduled_time.startsWith(today));
     
     return {
       total: todayLogs.length,

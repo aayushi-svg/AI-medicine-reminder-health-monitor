@@ -23,7 +23,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   const [actionTime, setActionTime] = useState<number | null>(null);
 
   const getTimeIcon = () => {
-    switch (log.timeSlot) {
+    switch (log.time_slot) {
       case 'morning':
         return <SunIcon className="w-5 h-5" />;
       case 'afternoon':
@@ -34,7 +34,7 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   };
 
   const getTimeGradient = () => {
-    switch (log.timeSlot) {
+    switch (log.time_slot) {
       case 'morning':
         return 'gradient-morning';
       case 'afternoon':
@@ -80,8 +80,12 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   };
 
   const formatTime = (timeString: string) => {
-    const date = new Date(timeString);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    try {
+      const date = new Date(timeString);
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch {
+      return timeString;
+    }
   };
 
   if (showConfirmation) {
@@ -137,20 +141,20 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
           </div>
           <div className={cn("pill-badge", getTimeGradient())}>
             {getTimeIcon()}
-            <span className="font-medium">{formatTime(log.scheduledTime)}</span>
+            <span className="font-medium">{formatTime(log.scheduled_time)}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 mb-4">
           <span className={cn(
             "pill-badge text-xs",
-            medicine.beforeFood ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
+            medicine.before_food ? "bg-accent text-accent-foreground" : "bg-secondary text-secondary-foreground"
           )}>
-            {medicine.beforeFood ? '🍽️ Before food' : '🍽️ After food'}
+            {medicine.before_food ? '🍽️ Before food' : '🍽️ After food'}
           </span>
           <span className="pill-badge bg-muted text-muted-foreground text-xs">
             <Clock className="w-3 h-3" />
-            {medicine.daysRemaining} days left
+            {medicine.days_remaining} days left
           </span>
         </div>
 

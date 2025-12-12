@@ -17,14 +17,14 @@ export const AddMedicineForm: React.FC<AddMedicineFormProps> = ({ onAdd, onClose
     name: '',
     dosage: '',
     morning: false,
-    morningTime: '08:00',
+    morning_time: '08:00',
     afternoon: false,
-    afternoonTime: '13:00',
+    afternoon_time: '13:00',
     night: false,
-    nightTime: '21:00',
-    beforeFood: false,
-    daysRemaining: 30,
-    startDate: new Date().toISOString().split('T')[0],
+    night_time: '21:00',
+    before_food: false,
+    days_remaining: 30,
+    start_date: new Date().toISOString().split('T')[0],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -92,8 +92,8 @@ export const AddMedicineForm: React.FC<AddMedicineFormProps> = ({ onAdd, onClose
                     {formData.morning && (
                       <Input
                         type="time"
-                        value={formData.morningTime}
-                        onChange={(e) => setFormData({ ...formData, morningTime: e.target.value })}
+                        value={formData.morning_time}
+                        onChange={(e) => setFormData({ ...formData, morning_time: e.target.value })}
                         className="w-28 h-10"
                       />
                     )}
@@ -113,8 +113,8 @@ export const AddMedicineForm: React.FC<AddMedicineFormProps> = ({ onAdd, onClose
                     {formData.afternoon && (
                       <Input
                         type="time"
-                        value={formData.afternoonTime}
-                        onChange={(e) => setFormData({ ...formData, afternoonTime: e.target.value })}
+                        value={formData.afternoon_time}
+                        onChange={(e) => setFormData({ ...formData, afternoon_time: e.target.value })}
                         className="w-28 h-10"
                       />
                     )}
@@ -134,8 +134,8 @@ export const AddMedicineForm: React.FC<AddMedicineFormProps> = ({ onAdd, onClose
                     {formData.night && (
                       <Input
                         type="time"
-                        value={formData.nightTime}
-                        onChange={(e) => setFormData({ ...formData, nightTime: e.target.value })}
+                        value={formData.night_time}
+                        onChange={(e) => setFormData({ ...formData, night_time: e.target.value })}
                         className="w-28 h-10"
                       />
                     )}
@@ -154,8 +154,8 @@ export const AddMedicineForm: React.FC<AddMedicineFormProps> = ({ onAdd, onClose
                 <span className="font-medium">Take before food</span>
               </div>
               <Switch
-                checked={formData.beforeFood}
-                onCheckedChange={(checked) => setFormData({ ...formData, beforeFood: checked })}
+                checked={formData.before_food}
+                onCheckedChange={(checked) => setFormData({ ...formData, before_food: checked })}
               />
             </div>
 
@@ -165,8 +165,8 @@ export const AddMedicineForm: React.FC<AddMedicineFormProps> = ({ onAdd, onClose
                 id="days"
                 type="number"
                 min={1}
-                value={formData.daysRemaining}
-                onChange={(e) => setFormData({ ...formData, daysRemaining: parseInt(e.target.value) || 1 })}
+                value={formData.days_remaining}
+                onChange={(e) => setFormData({ ...formData, days_remaining: parseInt(e.target.value) || 1 })}
                 className="mt-2 h-12 text-base"
               />
             </div>
