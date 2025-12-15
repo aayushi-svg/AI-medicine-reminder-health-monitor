@@ -212,7 +212,7 @@ const Profile = () => {
         </div>
       </main>
 
-      <BottomNav activeTab="profile" onTabChange={() => {}} onAddClick={() => {}} />
+      <BottomNav onAddClick={() => {}} />
     </div>
   );
 };

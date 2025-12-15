@@ -11,6 +11,7 @@ interface MedicineCardProps {
   log: DoseLog;
   onMarkTaken: (logId: string) => void;
   onMarkMissed: (logId: string) => void;
+  cardMountTime?: number;
 }
 
 export const MedicineCard: React.FC<MedicineCardProps> = ({
@@ -18,9 +19,10 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
   log,
   onMarkTaken,
   onMarkMissed,
+  cardMountTime,
 }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [actionTime, setActionTime] = useState<number | null>(null);
+  const [mountTime] = useState(() => cardMountTime || Date.now());
 
   const getTimeIcon = () => {
     switch (log.time_slot) {
@@ -63,13 +65,14 @@ export const MedicineCard: React.FC<MedicineCardProps> = ({
 
   const handleTaken = () => {
     const now = Date.now();
-    if (actionTime && now - actionTime < 3000) {
-      // Suspicious - too fast
+    const timeSinceMount = now - mountTime;
+    
+    // False confirmation detection: if clicked within 3 seconds of card appearing
+    if (timeSinceMount < 3000) {
       setShowConfirmation(true);
     } else {
       onMarkTaken(log.id);
     }
-    setActionTime(now);
   };
 
   const handleConfirm = (confirmed: boolean) => {
