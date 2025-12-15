@@ -20,6 +20,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [weeklyStats, setWeeklyStats] = useState({ score: 100, taken: 0, total: 0, streak: 0 });
   const { permission, requestPermission } = useNotifications();
   
   const {
@@ -29,7 +30,9 @@ const Index = () => {
     addMultipleMedicines,
     markDose,
     getDailySchedule,
+    getWeeklyAdherenceScore,
     getTodayStats,
+    notifyCaretaker,
   } = useMedicinesDB();
 
   useEffect(() => {
@@ -42,11 +45,26 @@ const Index = () => {
     if (activeTab === 'profile') navigate('/profile');
   }, [activeTab, navigate]);
 
+  useEffect(() => {
+    const fetchWeeklyStats = async () => {
+      const stats = await getWeeklyAdherenceScore();
+      setWeeklyStats(stats);
+    };
+    if (user) fetchWeeklyStats();
+  }, [user, getWeeklyAdherenceScore]);
+
   const dailySchedule = getDailySchedule();
   const todayStats = getTodayStats();
 
   const handleMarkTaken = (logId: string) => markDose(logId, 'taken');
-  const handleMarkMissed = (logId: string) => markDose(logId, 'missed');
+  const handleMarkMissed = async (logId: string) => {
+    await markDose(logId, 'missed');
+    // Find the medicine and notify caretaker
+    const log = dailySchedule.flatMap(s => s.medicines).find(m => m.log.id === logId);
+    if (log) {
+      notifyCaretaker(log.medicine.name, log.log.scheduled_time);
+    }
+  };
 
   const handleMedicinesExtracted = async (meds: any[]) => {
     const formattedMeds = meds.map(med => ({
@@ -84,8 +102,8 @@ const Index = () => {
           </Button>
         )}
 
-        <AdherenceCard score={85} taken={todayStats.taken} total={todayStats.total} />
-        <QuickStats weeklyScore={85} streak={7} steps={6543} sleepHours={7.5} />
+        <AdherenceCard score={weeklyStats.score} taken={todayStats.taken} total={todayStats.total} />
+        <QuickStats weeklyScore={weeklyStats.score} streak={weeklyStats.streak} steps={6543} sleepHours={7.5} />
 
         <div className="space-y-6">
           <div className="flex items-center justify-between">

@@ -1,1 +1,4 @@
 project_id = "bsexatmvhcazbxixgfas"
+
+[functions.notify-caretaker]
+verify_jwt = true
