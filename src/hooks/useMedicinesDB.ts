@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 interface Medicine {
   id: string;
   name: string;
@@ -261,6 +263,55 @@ export const useMedicinesDB = () => {
     return data?.adherence_score || 100;
   }, [user]);
 
+  const getWeeklyAdherenceScore = useCallback(async () => {
+    if (!user) return { score: 100, taken: 0, total: 0, streak: 0 };
+
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const { data: logs, error } = await supabase
+      .from('dose_logs')
+      .select('status, scheduled_time')
+      .eq('user_id', user.id)
+      .gte('scheduled_time', weekAgo.toISOString())
+      .order('scheduled_time', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching weekly logs:', error);
+      return { score: 100, taken: 0, total: 0, streak: 0 };
+    }
+
+    const total = logs?.length || 0;
+    const taken = logs?.filter(log => log.status === 'taken').length || 0;
+    const score = total > 0 ? Math.round((taken / total) * 100) : 100;
+
+    // Calculate streak (consecutive days with all doses taken)
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+
+      const dayLogs = logs?.filter(log => 
+        log.scheduled_time.startsWith(dateStr)
+      ) || [];
+
+      if (dayLogs.length === 0) continue;
+      
+      const allTaken = dayLogs.every(log => log.status === 'taken');
+      if (allTaken) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+
+    return { score, taken, total, streak };
+  }, [user]);
+
   const getTodayStats = useCallback(() => {
     return {
       total: doseLogs.length,
@@ -269,6 +320,29 @@ export const useMedicinesDB = () => {
       pending: doseLogs.filter(log => log.status === 'pending').length,
     };
   }, [doseLogs]);
+
+  const notifyCaretaker = useCallback(async (medicineName: string, scheduledTime: string) => {
+    if (!user) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('notify-caretaker', {
+        body: {
+          user_id: user.id,
+          medicine_name: medicineName,
+          scheduled_time: scheduledTime,
+          notification_type: 'missed_dose',
+        },
+      });
+
+      if (error) {
+        console.error('Error notifying caretaker:', error);
+      } else {
+        console.log('Caretaker notified successfully');
+      }
+    } catch (err) {
+      console.error('Failed to notify caretaker:', err);
+    }
+  }, [user]);
 
   return {
     medicines,
@@ -279,7 +353,9 @@ export const useMedicinesDB = () => {
     markDose,
     getDailySchedule,
     getAdherenceScore,
+    getWeeklyAdherenceScore,
     getTodayStats,
+    notifyCaretaker,
     refetch: () => Promise.all([fetchMedicines(), fetchDoseLogs()]),
   };
 };
