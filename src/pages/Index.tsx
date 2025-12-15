@@ -17,7 +17,6 @@ import { HeartIcon, PlantIcon } from '@/components/icons/MedicineIcons';
 const Index = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState('home');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [weeklyStats, setWeeklyStats] = useState({ score: 100, taken: 0, total: 0, streak: 0 });
@@ -41,9 +40,6 @@ const Index = () => {
     }
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    if (activeTab === 'profile') navigate('/profile');
-  }, [activeTab, navigate]);
 
   useEffect(() => {
     const fetchWeeklyStats = async () => {
@@ -163,7 +159,7 @@ const Index = () => {
         </div>
       </main>
 
-      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} onAddClick={() => setShowAddForm(true)} />
+      <BottomNav onAddClick={() => setShowAddForm(true)} />
       
       {showAddForm && <AddMedicineForm onAdd={addMedicine} onClose={() => setShowAddForm(false)} />}
       {showScanner && <PrescriptionScanner onMedicinesExtracted={handleMedicinesExtracted} onClose={() => setShowScanner(false)} />}
