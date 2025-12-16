@@ -1,12 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { createWorker, PSM } from 'tesseract.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Camera, Upload, Loader2, FileText, Sparkles, X, Check, Plus } from 'lucide-react';
+import { Upload, Loader2, FileText, Sparkles, X, Plus, Check } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExtractedMedicine {
   name: string;
@@ -23,36 +23,6 @@ interface PrescriptionScannerProps {
   onClose: () => void;
 }
 
-// Common medicine suffixes and keywords
-const MEDICINE_SUFFIXES = [
-  'cin', 'mycin', 'cillin', 'cycline', 'azole', 'prazole', 'tidine', 'sartan',
-  'pril', 'olol', 'dipine', 'statin', 'formin', 'gliptin', 'floxacin', 'mab',
-  'nib', 'vir', 'pine', 'zepam', 'pam', 'lone', 'sone', 'ate', 'ide', 'ine'
-];
-
-const MEDICINE_KEYWORDS = [
-  'tab', 'tablet', 'cap', 'capsule', 'syrup', 'syp', 'inj', 'injection',
-  'drops', 'cream', 'ointment', 'gel', 'lotion', 'suspension', 'susp'
-];
-
-const COMMON_MEDICINES = [
-  'paracetamol', 'acetaminophen', 'ibuprofen', 'aspirin', 'amoxicillin',
-  'azithromycin', 'ciprofloxacin', 'metformin', 'atorvastatin', 'omeprazole',
-  'pantoprazole', 'amlodipine', 'losartan', 'metoprolol', 'lisinopril',
-  'cetirizine', 'loratadine', 'montelukast', 'salbutamol', 'prednisolone',
-  'dexamethasone', 'ranitidine', 'domperidone', 'ondansetron', 'diclofenac',
-  'naproxen', 'tramadol', 'gabapentin', 'sertraline', 'fluoxetine',
-  'alprazolam', 'clonazepam', 'vitamin', 'calcium', 'iron', 'folic',
-  'multivitamin', 'zinc', 'b12', 'b-complex', 'd3', 'crocin', 'dolo',
-  'combiflam', 'calpol', 'disprin', 'brufen', 'voveran', 'zifi', 'augmentin',
-  'azee', 'pan', 'pantop', 'rablet', 'ecosprin', 'telmisartan', 'atenolol',
-  'norvasc', 'telma', 'stamlo', 'glycomet', 'metformin', 'glimepiride',
-  'insulin', 'lantus', 'humalog', 'novarapid', 'mixtard', 'levothyroxine',
-  'thyroxine', 'eltroxin', 'thyronorm', 'antacid', 'gelusil', 'digene',
-  'mucaine', 'syrup', 'allegra', 'montair', 'asthalin', 'budecort', 'seroflo',
-  'deriphyllin', 'alex', 'benadryl', 'grilinctus', 'ascoril', 'chericof'
-];
-
 export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ 
   onMedicinesExtracted, 
   onClose 
@@ -60,7 +30,6 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
   const [image, setImage] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [extractedText, setExtractedText] = useState('');
   const [extractedMedicines, setExtractedMedicines] = useState<ExtractedMedicine[]>([]);
   const [step, setStep] = useState<'upload' | 'scanning' | 'review'>('upload');
   const [manualName, setManualName] = useState('');
@@ -77,136 +46,42 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
     }
   };
 
-  const cleanMedicineName = (name: string): string => {
-    // Remove common prefixes and clean up
-    let cleaned = name
-      .replace(/^(tab\.?|cap\.?|syp\.?|inj\.?|tablet|capsule|syrup|injection)\s*/i, '')
-      .replace(/\d+\s*(mg|ml|mcg|g|iu|tablets?|capsules?|units?)\s*/gi, '')
-      .replace(/[^\w\s-]/g, '')
-      .trim();
-    
-    // Capitalize first letter
-    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
-  };
-
-  const isMedicineLikely = (word: string): boolean => {
-    const lower = word.toLowerCase();
-    
-    // Check against common medicines
-    if (COMMON_MEDICINES.some(med => lower.includes(med) || med.includes(lower))) {
-      return true;
-    }
-    
-    // Check for medicine suffixes
-    if (MEDICINE_SUFFIXES.some(suffix => lower.endsWith(suffix))) {
-      return true;
-    }
-    
-    // Check if preceded by medicine keywords in context
-    return false;
-  };
-
-  const extractMedicineNames = (text: string): string[] => {
-    const medicines: Set<string> = new Set();
-    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    
-    // Process each line
-    lines.forEach((line, lineIndex) => {
-      const lowerLine = line.toLowerCase();
-      
-      // Method 1: Check for medicine keywords (Tab., Cap., etc.)
-      const keywordPattern = /(?:tab\.?|cap\.?|syp\.?|inj\.?|tablet|capsule|syrup|injection)\s*([a-z][a-z0-9\s-]{2,30})/gi;
-      let match;
-      while ((match = keywordPattern.exec(line)) !== null) {
-        const name = cleanMedicineName(match[1]);
-        if (name.length >= 3 && name.length <= 30) {
-          medicines.add(name);
-        }
-      }
-      
-      // Method 2: Check each word against common medicines database
-      const words = line.split(/[\s,;:]+/);
-      words.forEach((word, wordIndex) => {
-        const cleanWord = word.replace(/[^\w]/g, '');
-        if (cleanWord.length >= 3 && isMedicineLikely(cleanWord)) {
-          // Get more context - include next word if it's part of medicine name
-          let fullName = cleanWord;
-          if (wordIndex < words.length - 1) {
-            const nextWord = words[wordIndex + 1].replace(/[^\w]/g, '');
-            // Check if next word is a dosage or continuation
-            if (!/^\d+/.test(nextWord) && nextWord.length >= 2 && nextWord.length <= 15) {
-              const combined = cleanWord + ' ' + nextWord;
-              if (COMMON_MEDICINES.some(med => combined.toLowerCase().includes(med))) {
-                fullName = combined;
-              }
-            }
-          }
-          medicines.add(cleanMedicineName(fullName));
-        }
-      });
-      
-      // Method 3: Pattern matching for common prescription formats
-      // "1. Medicine Name 500mg" or "Medicine Name - 1 tablet"
-      const numberedPattern = /^\d+[\.\)]\s*([a-z][a-z\s-]{2,25}?)(?:\s*[-:]?\s*\d|$)/i;
-      const numberedMatch = line.match(numberedPattern);
-      if (numberedMatch) {
-        const name = cleanMedicineName(numberedMatch[1]);
-        if (name.length >= 3) {
-          medicines.add(name);
-        }
-      }
-    });
-
-    // Filter out non-medicine words
-    const filtered = Array.from(medicines).filter(name => {
-      const lower = name.toLowerCase();
-      // Exclude common non-medicine words
-      const excludeWords = ['patient', 'doctor', 'hospital', 'clinic', 'date', 'name', 
-        'address', 'age', 'sex', 'male', 'female', 'diagnosis', 'prescription', 'rx',
-        'morning', 'evening', 'night', 'after', 'before', 'food', 'meal', 'days',
-        'times', 'daily', 'weekly', 'once', 'twice', 'thrice'];
-      return !excludeWords.some(exc => lower === exc || lower.includes(exc));
-    });
-
-    return filtered.slice(0, 15); // Limit to 15 medicines
-  };
-
   const scanPrescription = async () => {
     if (!image) return;
 
     setScanning(true);
     setStep('scanning');
-    setProgress(0);
+    setProgress(10);
 
     try {
-      const worker = await createWorker('eng', 1, {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            setProgress(Math.round(m.progress * 100));
-          }
-        }
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 10, 80));
+      }, 500);
+
+      const { data, error } = await supabase.functions.invoke('analyze-prescription', {
+        body: { imageBase64: image }
       });
 
-      // Set parameters for better prescription OCR
-      await worker.setParameters({
-        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-. ',
-        preserve_interword_spaces: '1',
-      });
+      clearInterval(progressInterval);
+      setProgress(100);
 
-      const { data: { text } } = await worker.recognize(image);
-      await worker.terminate();
+      if (error) {
+        throw new Error(error.message || 'Failed to analyze prescription');
+      }
 
-      console.log('OCR Raw Text:', text); // Debug log
-      setExtractedText(text);
-      const medicineNames = extractMedicineNames(text);
-      console.log('Extracted Medicines:', medicineNames); // Debug log
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      const medicineNames: string[] = data?.medicines || [];
+      console.log('AI Extracted Medicines:', medicineNames);
 
       if (medicineNames.length === 0) {
         toast({
           title: 'No medicines detected',
           description: 'You can manually add medicine names below.',
         });
-        // Go to review anyway so user can add manually
         setExtractedMedicines([]);
         setStep('review');
       } else {
@@ -227,10 +102,10 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
         });
       }
     } catch (error) {
-      console.error('OCR Error:', error);
+      console.error('AI Analysis Error:', error);
       toast({
         title: 'Scan failed',
-        description: 'Could not process the image. Please try again.',
+        description: error instanceof Error ? error.message : 'Could not process the image. Please try again.',
         variant: 'destructive',
       });
       setStep('upload');
@@ -464,16 +339,6 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
                   <Check className="w-5 h-5 mr-2" />
                   Add {extractedMedicines.length} Medicines
                 </Button>
-              )}
-
-              {/* Show raw OCR text for debugging */}
-              {extractedText && (
-                <details className="text-xs text-muted-foreground">
-                  <summary className="cursor-pointer">View raw scanned text</summary>
-                  <pre className="mt-2 p-2 bg-muted rounded text-xs whitespace-pre-wrap max-h-32 overflow-y-auto">
-                    {extractedText}
-                  </pre>
-                </details>
               )}
             </>
           )}
