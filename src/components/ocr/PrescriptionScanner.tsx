@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { createWorker } from 'tesseract.js';
+import { createWorker, PSM } from 'tesseract.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Camera, Upload, Loader2, FileText, Sparkles, X, Check } from 'lucide-react';
+import { Camera, Upload, Loader2, FileText, Sparkles, X, Check, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface ExtractedMedicine {
@@ -23,6 +23,36 @@ interface PrescriptionScannerProps {
   onClose: () => void;
 }
 
+// Common medicine suffixes and keywords
+const MEDICINE_SUFFIXES = [
+  'cin', 'mycin', 'cillin', 'cycline', 'azole', 'prazole', 'tidine', 'sartan',
+  'pril', 'olol', 'dipine', 'statin', 'formin', 'gliptin', 'floxacin', 'mab',
+  'nib', 'vir', 'pine', 'zepam', 'pam', 'lone', 'sone', 'ate', 'ide', 'ine'
+];
+
+const MEDICINE_KEYWORDS = [
+  'tab', 'tablet', 'cap', 'capsule', 'syrup', 'syp', 'inj', 'injection',
+  'drops', 'cream', 'ointment', 'gel', 'lotion', 'suspension', 'susp'
+];
+
+const COMMON_MEDICINES = [
+  'paracetamol', 'acetaminophen', 'ibuprofen', 'aspirin', 'amoxicillin',
+  'azithromycin', 'ciprofloxacin', 'metformin', 'atorvastatin', 'omeprazole',
+  'pantoprazole', 'amlodipine', 'losartan', 'metoprolol', 'lisinopril',
+  'cetirizine', 'loratadine', 'montelukast', 'salbutamol', 'prednisolone',
+  'dexamethasone', 'ranitidine', 'domperidone', 'ondansetron', 'diclofenac',
+  'naproxen', 'tramadol', 'gabapentin', 'sertraline', 'fluoxetine',
+  'alprazolam', 'clonazepam', 'vitamin', 'calcium', 'iron', 'folic',
+  'multivitamin', 'zinc', 'b12', 'b-complex', 'd3', 'crocin', 'dolo',
+  'combiflam', 'calpol', 'disprin', 'brufen', 'voveran', 'zifi', 'augmentin',
+  'azee', 'pan', 'pantop', 'rablet', 'ecosprin', 'telmisartan', 'atenolol',
+  'norvasc', 'telma', 'stamlo', 'glycomet', 'metformin', 'glimepiride',
+  'insulin', 'lantus', 'humalog', 'novarapid', 'mixtard', 'levothyroxine',
+  'thyroxine', 'eltroxin', 'thyronorm', 'antacid', 'gelusil', 'digene',
+  'mucaine', 'syrup', 'allegra', 'montair', 'asthalin', 'budecort', 'seroflo',
+  'deriphyllin', 'alex', 'benadryl', 'grilinctus', 'ascoril', 'chericof'
+];
+
 export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({ 
   onMedicinesExtracted, 
   onClose 
@@ -33,6 +63,7 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
   const [extractedText, setExtractedText] = useState('');
   const [extractedMedicines, setExtractedMedicines] = useState<ExtractedMedicine[]>([]);
   const [step, setStep] = useState<'upload' | 'scanning' | 'review'>('upload');
+  const [manualName, setManualName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,34 +77,98 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
     }
   };
 
-  const extractMedicineNames = (text: string): string[] => {
-    // Common medicine name patterns
-    const lines = text.split('\n').filter(line => line.trim());
-    const medicines: string[] = [];
+  const cleanMedicineName = (name: string): string => {
+    // Remove common prefixes and clean up
+    let cleaned = name
+      .replace(/^(tab\.?|cap\.?|syp\.?|inj\.?|tablet|capsule|syrup|injection)\s*/i, '')
+      .replace(/\d+\s*(mg|ml|mcg|g|iu|tablets?|capsules?|units?)\s*/gi, '')
+      .replace(/[^\w\s-]/g, '')
+      .trim();
     
-    // Look for patterns that might be medicine names
-    const medicinePatterns = [
-      /^[A-Z][a-z]+(?:\s+[A-Z]?[a-z]+)*(?:\s+\d+\s*(?:mg|ml|mcg|g|IU))?/gm,
-      /Tab\.|Cap\.|Syp\.|Inj\./gi,
-    ];
+    // Capitalize first letter
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+  };
 
-    lines.forEach(line => {
-      const cleanLine = line.trim();
-      // Skip very short lines or lines that are mostly numbers
-      if (cleanLine.length < 3 || /^\d+$/.test(cleanLine)) return;
+  const isMedicineLikely = (word: string): boolean => {
+    const lower = word.toLowerCase();
+    
+    // Check against common medicines
+    if (COMMON_MEDICINES.some(med => lower.includes(med) || med.includes(lower))) {
+      return true;
+    }
+    
+    // Check for medicine suffixes
+    if (MEDICINE_SUFFIXES.some(suffix => lower.endsWith(suffix))) {
+      return true;
+    }
+    
+    // Check if preceded by medicine keywords in context
+    return false;
+  };
+
+  const extractMedicineNames = (text: string): string[] => {
+    const medicines: Set<string> = new Set();
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    
+    // Process each line
+    lines.forEach((line, lineIndex) => {
+      const lowerLine = line.toLowerCase();
       
-      // Check if line looks like a medicine name
-      if (/^[A-Z]/i.test(cleanLine) && cleanLine.length > 2 && cleanLine.length < 50) {
-        // Remove dosage from name for cleaner extraction
-        const nameOnly = cleanLine.replace(/\d+\s*(?:mg|ml|mcg|g|IU|tablets?|capsules?)/gi, '').trim();
-        if (nameOnly.length > 2) {
-          medicines.push(nameOnly);
+      // Method 1: Check for medicine keywords (Tab., Cap., etc.)
+      const keywordPattern = /(?:tab\.?|cap\.?|syp\.?|inj\.?|tablet|capsule|syrup|injection)\s*([a-z][a-z0-9\s-]{2,30})/gi;
+      let match;
+      while ((match = keywordPattern.exec(line)) !== null) {
+        const name = cleanMedicineName(match[1]);
+        if (name.length >= 3 && name.length <= 30) {
+          medicines.add(name);
+        }
+      }
+      
+      // Method 2: Check each word against common medicines database
+      const words = line.split(/[\s,;:]+/);
+      words.forEach((word, wordIndex) => {
+        const cleanWord = word.replace(/[^\w]/g, '');
+        if (cleanWord.length >= 3 && isMedicineLikely(cleanWord)) {
+          // Get more context - include next word if it's part of medicine name
+          let fullName = cleanWord;
+          if (wordIndex < words.length - 1) {
+            const nextWord = words[wordIndex + 1].replace(/[^\w]/g, '');
+            // Check if next word is a dosage or continuation
+            if (!/^\d+/.test(nextWord) && nextWord.length >= 2 && nextWord.length <= 15) {
+              const combined = cleanWord + ' ' + nextWord;
+              if (COMMON_MEDICINES.some(med => combined.toLowerCase().includes(med))) {
+                fullName = combined;
+              }
+            }
+          }
+          medicines.add(cleanMedicineName(fullName));
+        }
+      });
+      
+      // Method 3: Pattern matching for common prescription formats
+      // "1. Medicine Name 500mg" or "Medicine Name - 1 tablet"
+      const numberedPattern = /^\d+[\.\)]\s*([a-z][a-z\s-]{2,25}?)(?:\s*[-:]?\s*\d|$)/i;
+      const numberedMatch = line.match(numberedPattern);
+      if (numberedMatch) {
+        const name = cleanMedicineName(numberedMatch[1]);
+        if (name.length >= 3) {
+          medicines.add(name);
         }
       }
     });
 
-    // Remove duplicates and limit to reasonable number
-    return [...new Set(medicines)].slice(0, 10);
+    // Filter out non-medicine words
+    const filtered = Array.from(medicines).filter(name => {
+      const lower = name.toLowerCase();
+      // Exclude common non-medicine words
+      const excludeWords = ['patient', 'doctor', 'hospital', 'clinic', 'date', 'name', 
+        'address', 'age', 'sex', 'male', 'female', 'diagnosis', 'prescription', 'rx',
+        'morning', 'evening', 'night', 'after', 'before', 'food', 'meal', 'days',
+        'times', 'daily', 'weekly', 'once', 'twice', 'thrice'];
+      return !excludeWords.some(exc => lower === exc || lower.includes(exc));
+    });
+
+    return filtered.slice(0, 15); // Limit to 15 medicines
   };
 
   const scanPrescription = async () => {
@@ -92,19 +187,28 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
         }
       });
 
+      // Set parameters for better prescription OCR
+      await worker.setParameters({
+        tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-. ',
+        preserve_interword_spaces: '1',
+      });
+
       const { data: { text } } = await worker.recognize(image);
       await worker.terminate();
 
+      console.log('OCR Raw Text:', text); // Debug log
       setExtractedText(text);
       const medicineNames = extractMedicineNames(text);
+      console.log('Extracted Medicines:', medicineNames); // Debug log
 
       if (medicineNames.length === 0) {
         toast({
-          title: 'No medicines found',
-          description: 'Could not detect medicine names. Please try a clearer image or enter manually.',
-          variant: 'destructive',
+          title: 'No medicines detected',
+          description: 'You can manually add medicine names below.',
         });
-        setStep('upload');
+        // Go to review anyway so user can add manually
+        setExtractedMedicines([]);
+        setStep('review');
       } else {
         const medicines: ExtractedMedicine[] = medicineNames.map(name => ({
           name,
@@ -118,7 +222,7 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
         setExtractedMedicines(medicines);
         setStep('review');
         toast({
-          title: `Found ${medicineNames.length} medicines! 🎉`,
+          title: `Found ${medicineNames.length} medicines!`,
           description: 'Please review and fill in the details.',
         });
       }
@@ -143,6 +247,28 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
 
   const removeMedicine = (index: number) => {
     setExtractedMedicines(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addManualMedicine = () => {
+    if (manualName.trim().length < 2) {
+      toast({
+        title: 'Enter medicine name',
+        description: 'Please enter a valid medicine name.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setExtractedMedicines(prev => [...prev, {
+      name: manualName.trim(),
+      dosage: '',
+      morning: true,
+      afternoon: false,
+      night: false,
+      beforeFood: true,
+      daysRemaining: 7,
+    }]);
+    setManualName('');
   };
 
   const handleConfirm = () => {
@@ -192,7 +318,10 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
                   <>
                     <Upload className="w-12 h-12 text-primary/50 mx-auto mb-4" />
                     <p className="text-foreground font-medium">Click to upload prescription</p>
-                    <p className="text-sm text-muted-foreground">PNG, JPG up to 10MB</p>
+                    <p className="text-sm text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Tip: Use a clear, well-lit image for better results
+                    </p>
                   </>
                 )}
               </div>
@@ -239,8 +368,23 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
               <div className="bg-primary/5 rounded-lg p-4 mb-4">
                 <p className="text-sm text-muted-foreground">
                   <Sparkles className="w-4 h-4 inline mr-1 text-primary" />
-                  We found {extractedMedicines.length} medicines. Please fill in the details for each.
+                  {extractedMedicines.length > 0 
+                    ? `Found ${extractedMedicines.length} medicines. Review and fill in details.`
+                    : 'No medicines detected. Add them manually below.'}
                 </p>
+              </div>
+
+              {/* Manual add section */}
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add medicine name manually..."
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addManualMedicine()}
+                />
+                <Button onClick={addManualMedicine} size="icon">
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
 
               <div className="space-y-4">
@@ -248,7 +392,11 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
                   <Card key={index} className="border shadow-sm">
                     <CardContent className="pt-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <Label className="font-medium">{medicine.name}</Label>
+                        <Input
+                          value={medicine.name}
+                          onChange={(e) => updateMedicine(index, 'name', e.target.value)}
+                          className="font-medium border-0 p-0 h-auto text-base focus-visible:ring-0"
+                        />
                         <Button
                           variant="ghost"
                           size="icon"
@@ -311,10 +459,22 @@ export const PrescriptionScanner: React.FC<PrescriptionScannerProps> = ({
                 ))}
               </div>
 
-              <Button onClick={handleConfirm} className="w-full" size="lg">
-                <Check className="w-5 h-5 mr-2" />
-                Add {extractedMedicines.length} Medicines
-              </Button>
+              {extractedMedicines.length > 0 && (
+                <Button onClick={handleConfirm} className="w-full" size="lg">
+                  <Check className="w-5 h-5 mr-2" />
+                  Add {extractedMedicines.length} Medicines
+                </Button>
+              )}
+
+              {/* Show raw OCR text for debugging */}
+              {extractedText && (
+                <details className="text-xs text-muted-foreground">
+                  <summary className="cursor-pointer">View raw scanned text</summary>
+                  <pre className="mt-2 p-2 bg-muted rounded text-xs whitespace-pre-wrap max-h-32 overflow-y-auto">
+                    {extractedText}
+                  </pre>
+                </details>
+              )}
             </>
           )}
         </CardContent>
