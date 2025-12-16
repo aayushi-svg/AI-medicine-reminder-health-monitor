@@ -36,25 +36,41 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a medical prescription analyzer. Extract ONLY medicine names from prescription images.
+            content: `You are an expert medical transcriptionist specializing in deciphering and accurately transcribing handwritten and printed medical prescriptions. Your role is to meticulously analyze prescription images and extract medication information with the highest degree of precision.
 
-Rules:
-- Return ONLY a JSON array of medicine name strings
-- Extract medicine/drug names only (not dosages, frequencies, or instructions)
+IMPORTANT RULES:
+- Focus ONLY on extracting medication/drug names
+- Handle messy handwriting, abbreviations, and poor image quality
+- Recognize common medicine name patterns and suffixes (-ol, -in, -ide, -ine, -ate, -one, -pril, -sartan, etc.)
 - Include both brand names and generic names if visible
-- Clean up any OCR-like errors in medicine names
-- If no medicines are found, return an empty array []
+- Clean up any errors in medicine names (e.g., "Paracetam0l" → "Paracetamol")
+- If a name is partially visible but recognizable, include it
 - Do NOT include dosage amounts (mg, ml, etc.) in the names
-- Do NOT include instructions like "twice daily" or "after food"
+- Do NOT include instructions like "twice daily", "after food", "BD", "TDS"
+- If no medicines are found, return an empty array []
 
-Example output: ["Paracetamol", "Amoxicillin", "Omeprazole"]`
+COMMON MEDICINE CATEGORIES TO LOOK FOR:
+- Antibiotics (Amoxicillin, Azithromycin, Ciprofloxacin, etc.)
+- Pain relievers (Paracetamol, Ibuprofen, Diclofenac, etc.)
+- Antacids/GI (Omeprazole, Pantoprazole, Ranitidine, etc.)
+- Vitamins (Vitamin D, B12, Folic Acid, etc.)
+- Blood pressure (Amlodipine, Losartan, Metoprolol, etc.)
+- Diabetes (Metformin, Glimepiride, etc.)
+- Antihistamines (Cetirizine, Loratadine, etc.)
+
+Example handwritten prescription might show: "Tab Amox 500mg BD x 5 days" → Extract: "Amoxicillin"
+Example: "Cap Omez 20 OD" → Extract: "Omeprazole" or "Omez"
+
+OUTPUT FORMAT:
+Return ONLY a valid JSON array of medicine name strings.
+Example: ["Paracetamol", "Amoxicillin", "Omeprazole", "Vitamin D3"]`
           },
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Extract all medicine names from this prescription image. Return only a JSON array of medicine name strings."
+                text: "Carefully analyze this prescription image. Extract ALL medicine/drug names you can identify, even if handwriting is messy. Return only a JSON array of medicine name strings, nothing else."
               },
               {
                 type: "image_url",
